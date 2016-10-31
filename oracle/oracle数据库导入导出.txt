@@ -1,0 +1,26 @@
+Sqlplus system/manager@oral
+
+SQL>create user pmuser_shsy identified by password default tablespace users temporary tablespace temp;
+
+SQL>grant connect,resource to pmuser_shsy;
+
+SQL>exit
+
+exp system/manager@gnnt file=/pmuser_dev.dmp owner=muser_gzjscl_tst
+
+imp system/manager@oral file=pmuser_dev.dmp fromuser=pmuser_dev touser=pmuser_shsy
+
+
+create directory utllobdir as '/home/oracle/'
+--update CLOB
+declare
+a_clob CLOB;
+bfile_name BFILE := BFILENAME('ULTLOBDIR','log.xml');
+begin
+update clobtest set col1=empty_clob() where rownum=1
+returning col1 into a_clob;
+dbms_lob.fileopen(bfile_name);
+dbms_lob.loadfromfile(a_clob, bfile_name, dbms_lob.getlength(bfile_name));
+dbms_lob.fileclose(bfile_name);
+commit;
+end;

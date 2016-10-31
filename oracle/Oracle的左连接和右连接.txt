@@ -1,0 +1,13 @@
+在Oracle PL-SQL中，左连接和右连接以如下方式来实现
+
+查看如下语句：
+
+SELECT emp_name, dept_name 
+
+FORM Employee, Department
+WHERE Employee.emp_deptid(+) = Department.deptid此SQL文使用了右连接，即“(+)”所在位置的另一侧为连接的方向，右连接说明等号右侧的所有记录均会被显示，无论其在左侧是否得到匹配，也就是说上例中无论会不会出现某个部门没有一个员工的情况，这个部门的名字都会在查询结果中出现。
+
+反之：
+SELECT emp_name, dept_name 
+FORM Employee, Department
+WHERE Employee.emp_deptid = Department.deptid(+)则是左连接，无论这个员工有没有一个能在Department表中得到匹配的部门号，这个员工的记录都会被显示 

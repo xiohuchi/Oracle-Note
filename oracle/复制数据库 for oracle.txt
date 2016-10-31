@@ -1,0 +1,76 @@
+sqlplus "/as sysdba"
+
+startup
+sqlplus system/oracle@215
+
+
+create user tuser_jnhs identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to tuser_jnhs;
+create user muser_tjg identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to muser_tjg;
+create user tuser_tjg identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to tuser_tjg;
+
+create user trade_gnntw identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to trade_gnntw;
+create user hquser_gnntw identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to hquser_gnntw;
+
+
+grant connect,resource to qianFunc;
+grant connect,resource to qianInfo;
+grant connect,resource to qianhy;
+grant connect,resource to tuser_shsy_demo;
+grant connect,resource to fuser_shsy_demo;
+
+exp system/oracle@215 file=d:\tuser_dldm.dmp owner=tuser_dldm
+
+exp system/oraclegnnt file=webzgpauser.dmp owner=webzgpauser
+create user webzgpauser identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to webzgpauser;
+
+
+
+
+exp trade_gnntw/password file=trade_gnntw2011090819.dmp
+exp hquser_gnntw/password file=hquser_gnntw2011090819.dmp
+
+
+
+
+
+/users/mgr/HQ_PengBo.zip
+
+
+
+sqlplus system/oracle
+create user fuser_zjsl_demo identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to tuser_zjsl_demo;
+
+exp system/oracle file=tuser.dmp owner=tuser_jnhs
+imp system/oracle file=muser.dmp fromuser=muser_jnhs touser=tuser_jnhs
+imp system/oracle@215 file=d:\dp.dmp fromuser=shgc_tuser touser=daping_test
+imp system/oracle file=fuser_zjsl.dmp fromuser=fuser_zjsl touser=fuser_zjsl_demo
+
+imp trade_gnntw/password file=trade_gnntw2011090819.dmp 
+
+/home/oracle/app/oracle/product/8.1.6/network/admin/tnsnames.ora
+
+----导出-------
+create directory expdp_dir as '/home/oracle/expdp_dir';
+grant read,write on directory expdp_dir to webzgpauser;
+exit
+cd 
+mkdir expdp_dir
+expdp webzgpauser/password  DIRECTORY=expdp_dir DUMPFILE=webzgpauser.dmp  logfile=webzgpauser.log
+----导入
+create directory impdp_dir as '/home/oracle/impdp_dir';
+grant read,write on directory impdp_dir to webzgpauser;
+create user webzgpauser identified by password default tablespace users temporary tablespace temp;
+grant connect,resource to webzgpauser;
+
+impdp webzgpauser/password DIRECTORY=impdp_dir dumpfile=webzgpauser.dmp logfile=Imp.log
+
+
+
+

@@ -1,0 +1,7 @@
+
+oracle 中复制表结构一般是这样写的吧
+create table a as select * from b where 1=2
+复制表
+SELECT *
+INTO 权限分配表2
+FROM 权限分配表

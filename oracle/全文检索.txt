@@ -1,0 +1,1 @@
+create index INF_index_CONTENT on INFOBASE(CONTENT) indextype is ctxsys.context;create index INF_index_CONTENT on INFOBASE(CONTENT) indextype is ctxsys.context;

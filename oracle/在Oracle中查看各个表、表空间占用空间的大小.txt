@@ -1,0 +1,6 @@
+在Oracle中查看各个表、表空间占用空间的大小
+system用户
+查看当前用户每个表占用空间的大小：
+Select Segment_Name,Sum(bytes)/1024/1024 From User_Extents Group By Segment_Name 
+查看每个表空间占用空间的大小：
+Select Tablespace_Name,Sum(bytes)/1024/1024 From Dba_Segments Group By Tablespace_Name 

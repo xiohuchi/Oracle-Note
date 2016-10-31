@@ -1,0 +1,22 @@
+grant create database link to funduser_cotton;
+2.创建datalink
+  a)在现货所在数据库tnsnames.ora里增加指向远期的tnsname
+  b)在funduser下创建名为awmts的datalink
+create database link Tuser connect to tuser_view identified by password using 'steel';
+
+create or replace synonym tuser_view. for GL_STATUS@AWMTS;
+
+
+
+select md5_digest('aaa') from dual;
+
+create or replace function MD5_Digest (
+vin_string IN VARCHAR2
+) RETURN VARCHAR2 IS
+--
+-- Return an MD5 hash of the input string.
+--
+BEGIN
+RETURN UPPER(Dbms_Obfuscation_Toolkit.Md5 ( input => utl_raw.cast_to_raw(vin_string)
+            ));
+END MD5_Digest;

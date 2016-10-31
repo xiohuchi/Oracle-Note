@@ -1,0 +1,59 @@
+取子串 substr(str,1,5)
+
+SQL Server 按周划分
+
+10G启动监听
+lsnrctl start
+
+
+
+select name from V$database;
+
+DB2  编目
+catalog tcpip node awmt1 remote 172.16.2.213 server 50000
+terminate
+catalog database awmts at node awmt1
+terminate
+
+
+172.16.88.82
+
+root/rootgnnt
+
+
+返回数据库目录的内容
+list database directory 
+
+显示一个表或视图的列信息。 
+describe table <tablename> 
+172.16.88.82
+
+
+数据库创建
+create db cc using codeset UTF-8 territory US
+
+相同表连接
+
+select ID,firmid,code,price,quantity,bsflag,1 as f from presubmit union all select ID,firmid,commodity as code,price,quantity,bsflag,2 as f from dailysubmit;
+
+
+建同意词
+
+
+create or replace synonym tuser_cotton.presubmit 
+  for muser_cotton.presubmit;
+
+
+断开与当前数据库的连接。
+connect reset  
+
+
+
+数据源
+        try
+            {
+                Context ctx=new InitialContext();
+                DataSource ds=(DataSource)ctx.lookup("java:comp/env/jdbc/warehouse");
+                conn= ds.getConnection(); 
+%>
+update hissubmit set  submittime=to_date('2007-11-30'||to_char(submittime,' hh24:mi:ss'),'yyyy-mm-dd hh24:mi:ss'),finishedtime=to_date('2007-11-30'||to_char(finishedtime,' hh24:mi:ss'),'yyyy-mm-dd hh24:mi:ss') where id in (119689,119690,119692,119693,119697,119698,119699,119700,119701,119702,119703,119704,119705,119706,119707,119708,119709,119710,119711,119712,119713,119714) and finishedtime is not null

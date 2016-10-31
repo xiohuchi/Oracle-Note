@@ -1,0 +1,8 @@
+9i
+sqlplus "/as sysdba"
+alter system set processes=100 scope=spfile;
+shutdown immediate;
+startup
+
+8i
+ÐÞ¸Äinitsid.oraÖÐµÄprocesses=100

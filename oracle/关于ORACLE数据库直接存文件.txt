@@ -1,0 +1,120 @@
+找了下资料。自己调了下程序，在tomcat环境下通过。
+ 
+比较值得注意的几个地方
+ 
+1。db.conn.setAutoCommit(false);  需要将自动提交设置为false。否则会报一个
+java.sql.SQLException: ORA-01002: fetch out of sequence的错误。
+ 
+2。要存入文件需要oracle用blob字段，并且注意Oracle的 BLOB一定要用EMPTY_BLOB()初始化 
+在insert之后，要select原来的文件应该用for update
+比如：select filebody from filetest where filename=? for update
+否则会报 ORA-22920: row containing the LOB value is not locked的错误。
+ 
+ 
+其他基本OK
+ 
+ 
+ 
+Oracledbconn db = new Oracledbconn();
+  db.conn();
+  db.conn.setAutoCommit(false);   // --------问题1
+  //read file
+  byte a[]=null;
+  java.io.FileInputStream fin=null;
+  java.io.FileOutputStream fout=null;
+  oracle.jdbc.OracleResultSet ors=null; //**这里rs一定要用Oracle提供的
+  oracle.jdbc.driver.OraclePreparedStatement opst=null;//**PreparedStatement用
+  try
+  {
+   java.io.File f1=new java.io.File("c:/temp/test.txt");
+   java.io.File f2=new java.io.File("c:/temp/testout.txt");//**从BLOB读出的信息写
+   //入该文件，和源文件对比测试用
+   
+   
+   fin=new java.io.FileInputStream(f1);
+   fout=new java.io.FileOutputStream(f2);
+   int flength=(int)f1.length();//**读入文件的字节长度
+   System.out.println("file length::"+flength);
+   a=new byte[flength];
+   int i=0;int itotal=0;
+   //将文件读入字节数组
+      for (;itotal<flength;itotal=i+itotal )
+      {
+       
+       i=fin.read(a,itotal,flength-itotal);
+       
+      }
+      fin.close();
+      
+     //System.out.println(a);
+     System.out.println("read itotal::"+itotal);
+     //注意Oracle的 BLOB一定要用EMPTY_BLOB()初始化 
+     String mysql="insert into filetest (filename,filesize,filebody) values (?,?,empty_blob())";
+     
+     //opst = (oracle.jdbc.driver.OraclePreparedStatement)db.conn.prepareStatement(mysql);
+     
+     opst=(oracle.jdbc.driver.OraclePreparedStatement)db.conn.prepareStatement(mysql);
+            opst.setString(1,"wordtemplate2");
+            //opst.setInt(2,flength);
+            opst.setInt(2,flength);
+          
+            opst.executeUpdate();
+            opst.clearParameters();
+            System.out.println("插入数据之后");
+            //插入其它数据后，定位BLOB字段
+              mysql="select filebody from filetest where filename=? for update";
+              opst=(oracle.jdbc.driver.OraclePreparedStatement)db.conn.prepareStatement(mysql);
+              opst.setString(1,"wordtemplate2");
+              ors=(oracle.jdbc.OracleResultSet)opst.executeQuery();
+              System.out.println(ors);
+              if (ors.next())
+              {
+               System.out.println("进入if语句");
+               oracle.sql.BLOB blob=ors.getBLOB(1);//得到BLOB字段           
+               System.out.println("得到blob字段之后");
+               System.out.println(blob);
+               int j=blob.putBytes(1,a);//将字节数组写入BLOB字段
+               System.out.println("j:"+j);
+               db.conn.commit();
+               ors.close();
+              }         
+              
+              
+       System.out.println("insert into ok");
+       //the second parse
+       byte b[]=null;//保存从BLOB读出的字节
+       opst.clearParameters();
+          mysql="select filebody from filetest where filename=?";
+          opst=(oracle.jdbc.driver.OraclePreparedStatement)db.conn.prepareStatement(mysql);
+          opst.setString(1,"wordtemplate2");
+          ors=(oracle.jdbc.OracleResultSet)opst.executeQuery();
+       
+          if (ors.next())
+             {
+             oracle.sql.BLOB blob2=ors.getBLOB(1); 
+             
+             System.out.println("blob2 length:"+blob2.length());
+             b=blob2.getBytes(1,flength);//从BLOB取出字节流数据
+             System.out.println("b length::"+b.length);
+             db.conn.commit();
+             }  
+             ors.close();
+             //将从BLOB读出的字节写入文件
+             fout.write(b,0,b.length);
+             fout.close();  
+      
+       System.out.println("write itotal::"+b.length);
+}
+  
+  
+  catch(Exception e)
+    {
+     System.out.println("errror :"+e.toString() );
+     e.printStackTrace();
+     
+    }
+   finally
+    { //关闭所有数据联接
+    // stmt.close();
+    db.closeconn();
+    }

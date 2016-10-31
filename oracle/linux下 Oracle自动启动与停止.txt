@@ -1,0 +1,64 @@
+linux下 Oracle自动启动与停止
+1、 修改Oracle系统配置文件/etc/oratab
+/etc/oratab 格式为： SID:ORACLE_HOME:AUTO
+把AUTO域设置为Y(大写)，只有这样，oracle 自带的dbstart和dbshut才能够发挥作用。我的为：
+ora9i:/home/oracle/ora/products/9.2.0:Y
+2、 编写服务脚本：
+如下
+#!/bin/bash
+#
+#################FUNCTION#############
+#
+# AutoStart Oracle and listener
+# AutoStop Oracle and listener
+#
+#####################################
+
+case "$1" in
+start)
+echo "Starting Oracle Databases ... "
+echo "-------------------------------------------------" >> /var/log/oracle date +" %T %a %D : Starting Oracle Databasee as part of system up." >> /var/log/oracle echo "-------------------------------------------------" >> /var/log/oracle su - oracle -c "dbstart" >> /var/log/oracle echo "Done."
+echo "Starting Oracle Listeners ... "
+echo "-------------------------------------------------" >> /var/log/oracle date +" %T %a %D : Starting Oracle Listeners as part of system up." >> /var/log/oracle echo "-------------------------------------------------" >> /var/log/oracle su - oracle -c "lsnrctl start" >> /var/log/oracle echo "Done."
+echo ""
+echo "-------------------------------------------------" >> /var/log/oracle date +" %T %a %D : Finished." >> /var/log/oracle echo "-------------------------------------------------" >> /var/log/oracle touch /var/lock/subsys/oracle
+
+;;
+stop)
+echo "Stoping Oracle Listeners ... "
+echo "-------------------------------------------------" >> /var/log/oracle date +" %T %a %D : Stoping Oracle Listener as part of system down." >> /var/log/oracle echo "-------------------------------------------------" >> /var/log/oracle su - oracle -c "lsnrctl stop" >> /var/log/oracle echo "Done."
+rm -f /var/lock/subsys/oracle
+echo "Stoping Oracle Databases ... "
+echo "-------------------------------------------------" >> /var/log/oracle date +" %T %a %D : Stoping Oracle Databases as part of system down." >> /var/log/oracle echo "-------------------------------------------------" >> /var/log/oracle su - oracle -c "dbshut" >>/var/log/oracle echo "Done."
+echo ""
+echo "-------------------------------------------------" >> /var/log/oracle date +" %T %a %D : Finished." >> /var/log/oracle echo "-------------------------------------------------" >> /var/log/oracle
+
+;;
+restart)
+$0 stop
+$0 start
+
+;;
+*)
+echo "Usage: oracle {start|stop|restart}"
+exit 1
+esac
+
+将脚本命名为oracle，保存在/etc/rc.d/init.d下
+改变文件属性：chmod 755 oracle
+
+注意：在windows下编辑此文件时有DOS格式字符导致在linux下不能够正常运行，建议用gedit 或用 vi编辑
+
+3、建立服务连接：
+系统启动时启动数据库，我们需要以下连结∶
+--------------------------------------------------------------------------------
+$ ln -s ../init.d/oracle /etc/rc.d/rc2.d/S99oracle $ ln -s ../init.d/oracle /etc/rc.d/rc3.d/S99oracle $ ln -s ../init.d/oracle /etc/rc.d/rc5.d/S99oracle #rc4.d unused
+
+--------------------------------------------------------------------------------
+
+要在重新启动时停止数据库，我们需要以下连结∶
+
+--------------------------------------------------------------------------------
+
+$ ln -s ../init.d/oracle /etc/rc.d/rc0.d/K01oracle # 停止
+$ ln -s ../init.d/oracle /etc/rc.d/rc6.d/K01oracle # 重新启动

@@ -1,0 +1,8 @@
+sqlplus "/as sysdba"
+connect system/oracle as sysdba
+
+已连接。
+
+修改用户system密码为manager
+
+SQL> alter user system identified by oracle;

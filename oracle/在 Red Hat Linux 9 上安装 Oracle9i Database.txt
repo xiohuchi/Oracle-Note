@@ -1,0 +1,212 @@
+
+　　 这篇文章在Oracle的网站上发表，堪称安装Oracle9i Database的指南性论述。
+
+作者：Abhijeet Kulkarni 
+
+
+数据库版本：Oracle9i R2 (9.2.0.1.0)
+
+1. 创建用户与组：
+-------------------------
+ 
+切换为 Root 用户并执行下列命令
+
+$ su -
+
+# groupadd oinstall
+# groupadd dba
+# useradd -g oinstall -G dba oracle
+# passwd oracle
+
+2. 创建目录。
+--------------------------
+我们将把所有东西都安装到在 /opt/ora9 目录下：
+
+# mkdir -p /opt/ora9/product/9.2
+# mkdir /var/opt/oracle
+# chown oracle.dba /var/opt/oracle
+# chown -R oracle.dba /opt/ora9
+
+3. 预安装（系统配置）：
+---------------------------
+
+3.1 安装这些兼容性库：
+
+compat-gcc-7.3-2.96.118.i386.rpm
+compat-libgcj-7.3-2.96.118.i386.rpm
+compat-libgcj-devel-7.3-2.96.118.i386.rpm
+nss_db-compat-2.2-20.i386.rpm
+
+您可以在安装 CD 上找到这些程序包。
+第一个文件在 CD1 的 RedHat RPMS 目录中
+另外 3 个文件在 CD2 的 RPMS 目录中
+
+
+
+3.2 设置内核参数以便能够成功启动：
+
+把这些行添加到 /etc/sysctl.conf
+如果您有更多 RAM，也可以更改这些值：
+
+kernel.shmmax = 536870912
+kernel.shmmni = 4096
+kernel.shmall = 2097152
+kernel.sem = 250 32000 100 128
+fs.file-max = 65536
+net.ipv4.ip_local_port_range = 1024 65000
+
+把这些行添加到 /etc/security/limits.conf
+
+oracle soft nofile 65536
+oracle hard nofile 65536
+oracle soft nproc 16384
+oracle hard nproc 16384
+
+重启系统以使这些内核更改生效，如果不允许重启，您可以在运行时通过执行下列命令更改内核参数：
+
+# echo 250 32000 100 128 > /proc/sys/kernel/sem
+# echo 536870912 > /proc/sys/kernel/shmmax
+# echo 4096 > /proc/sys/kernel/shmmni
+# echo 2097152 > /proc/sys/kernel/shmall
+# echo 65536 > /proc/sys/fs/file-max
+# echo 1024 65000 > /proc/sys/net/ipv4/ip_local_port_range
+
+4. 预安装（oracle 环境）：
+----------------------------
+以 oracle 用户身份登录：
+
+su - oracle
+
+将下列行放置在 ~/.bashrc：
+
+#oracle 9i
+export ORACLE_BASE=/opt/ora9
+export ORACLE_HOME=/opt/ora9/product/9.2
+export PATH=$ORACLE_HOME/bin:$ORACLE_HOME/Apache/Apache/bin:$PATH
+export ORACLE_OWNER=oracle
+export ORACLE_SID=ora9i
+export ORACLE_TERM=vt100
+export LD_ASSUME_KERNEL=2.4.1
+export THREADS_FLAG=native
+export LD_LIBRARY_PATH=/opt/ora9/product/9.2/lib:$LD_LIBRARY_PATH
+export PATH=/opt/ora9/product/9.2/bin:$PATH
+#
+#根据您本国的情况更改这个 NLS 设置：
+#示例：
+# german_germany.we8iso8859p15, american_america.we8iso8859p2 etc.
+#
+export NLS_LANG='croatian_croatia.ee8iso8859p2'
+
+
+如果您需要其它的国家设置（这些是克罗地亚的），请参考这里的支持设置，并对 NLS_LANG 变量进行相应更改。
+
+5. 安装：
+------------------------
+
+以 Root 用户登录并允许用户 oracle 向 X 显示器写入：
+
+su -
+xhost +
+
+登录为 oracle 用户：
+
+su - oracle
+
+开始安装。不要切换到您的 CD-ROM 安装目录，因为您将无法在系统需要时卸下第一张 CD 以插入其它 CD。
+
+/mnt/cdrom/install/linux/runInstaller
+
+在安装期间，系统会提示您插入其它安装盘。打开一个新的控制台，用命令 umount /dev/cdrom（以 Root 用户身份）卸下当前的盘片，替换该盘片。如果 Redhat9 没有自动安装它，那么使用命令 mount /dev/cdrom 将其装上
+
+安装将产生两个错误。
+
+* 第一，您将会看到一个错误对话框提示关于 ins_oemagent.mk 的问题。选择忽略该错误，我们将在安装后更正该错误。
+* 第二个对话框将通知您 "Error in invoking target install of makefile $ORACLE_HOME/ctx/lib/ins_ctx.mk"。
+如果发生该错误，打开一个新的控制台并以 oracle 用户身份登录。执行下列命令：
+
+$ cd $ORACLE_HOME/install
+$ tail make.log
+
+您将看到与下面类似的一行信息：
+
+gcc -o ctxhx -L/opt/ora9/product/9.2/ctx/lib/ -L/opt/ora9/product/9.2/lib/
+-L/opt/ora9/product/9.2/lib/stubs/ /opt/ora9/product/9.2/ctx/lib/ctxhx.o
+-L/opt/ora9/product/9.2/ctx/lib/ -lm -lsc_ca -lsc_fa -lsc_ex -lsc_da -lsc_ut
+-lsc_ch -lsc_fi -lctxhx -lc -Wl,-rpath,/opt/ora9/product/9.2/ctx/lib -lnls9
+-lcore9 -lnls9 -lcore9 -lnls9 -lxml9 -lcore9 -lunls9 -lnls9
+
+复制该行，在行末添加 -ldl 然后在 $ORACLE_HOME/bin 中运行它。
+
+$ cd $ORACLE_HOME/bin
+$ gcc -o ctxhx -L/opt/ora9/product/9.2/ctx/lib/ 
+-L/opt/ora9/product/9.2/lib/ -L/opt/ora9/product/9.2/lib/stubs/ 
+/opt/ora9/product/9.2/ctx/lib/ctxhx.o -L/opt/ora9/product/9.2/ctx/lib/ 
+-lm -lsc_ca -lsc_fa -lsc_ex -lsc_da -lsc_ut -lsc_ch -lsc_fi -lctxhx -lc 
+-Wl,-rpath,/opt/ora9/product/9.2/ctx/lib -lnls9 -lcore9 -lnls9 -lcore9 
+-lnls9 -lxml9 -lcore9 -lunls9 -lnls9 -ldl
+
+现在，点击对话框上的忽略按钮，安装将继续进行。
+
+最后，Oracle 安装可能会提示您代理程序启动失败。选择忽略，我们将在稍后更改此错误。
+
+6. 安装后处理
+---------------------------
+打开一个控制台并以 oracle 用户身份登录。执行这些命令：
+
+$ cd $ORACLE_HOME/network/lib
+$ make -f ins_net_client.mk install
+
+然后编辑 $ORACLE_HOME/ctx/lib/ins_ctx.mk 文件，把 13-14 行从：
+
+ctxhx:$(CTXHXOBJ)
+$(LINK) $(CTXHXOBJ) $(INSO_LINK)
+
+改为
+
+ctxhx:$(CTXHXOBJ)
+$(LINK) -ldl $(CTXHXOBJ) $(INSO_LINK)
+
+然后执行
+
+$ make -f $ORACLE_HOME/ctx/lib/ins_ctx.mk install
+
+现在，您将能够用下面的命令启动您的代理程序了
+
+$ /opt/ora9/product/9.2/bin/agentctl start
+
+7. 启动数据库
+------------------------------
+如果您的安装程序在第 5 部分的最后一步被挂起，不要担心。等一段时间看它是否响应，如不响应则终止它。
+在一个 shell 脚本（如 setvar.sh）中添加下面几行
+#oracle 9i
+export ORACLE_BASE=/home1/orahome
+export ORACLE_HOME=/home1/orahome/ora92
+export PATH=$ORACLE_HOME/bin:$ORACLE_HOME/Apache/Apache/bin:$PATH
+export ORACLE_OWNER=oracle
+export ORACLE_SID=ora9i
+export ORACLE_TERM=vt100
+export LD_ASSUME_KERNEL=2.4.1
+export THREADS_FLAG=native
+export LD_LIBRARY_PATH=/opt/ora9/product/9.2/lib:$LD_LIBRARY_PATH
+export PATH=/opt/ora9/product/9.2/bin:$PATH
+export ORA_NLS33=$ORACLE_HOME/ocommon/nls/admin/data
+
+保存此文件并在命令提示符运行 
+$source setvar.sh
+
+现在转至 $ORACLE_HOME/bin
+使用任意编辑器编辑 dbca 脚本
+$kwrite dbca
+
+找到 JRE_HOME 环境变量。它指向 JDK 1.8，后者是安装 CD 的一部分。更改该变量并使其指向您的 linux 安装的 JDK1.3 或 1.4，转至文件末尾，该变量用于调用 Java 程序。从路径中删除 bin 目录，并将 jre 可执行文件更名为 java 文件。这就像使用我们自己的 JDK 调用 java 程序一样。
+启动
+$./dbca
+
+8. 启动数据库实例
+打开一个 sqlplus 会话并以 sys/passwd 作为系统数据库管理员登录
+sql>create spfile from pfile='full path of the .ora file created by the dbca utility ';
+Eg /home1/orahome/admin/dl226b/pfile/initdl226b.ora
+
+sql>shutdown immediate;
+sql>startup;
+

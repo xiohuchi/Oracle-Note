@@ -1,0 +1,675 @@
+手动建立 Oracle9i 数据库
+
+作者: 何致億, 美商甲骨文公司台湾分公司特约顾问 
+
+前几期我们分别探讨 Oracle9i 核心要素与数据库实体组成，相信大家对于 Oracle9i 数据库服务器已经具有一定程度的了解了。本期我将介绍手动建置 Oracle9i 数据库的步骤与相关注意事项。
+
+
+本文内容将涵盖下列主题：
+
+n 建立数据库的前置工作
+
+n 起始参数档的重要参数
+
+n 手动建立 Oracle9i 数据库的步骤
+
+n 如何移除 Oracle9i 数据库
+
+
+不管原因为何，当您准备自行建立 Oracle9i 数据库时，都必须事先做好妥善准备。因为手动建立 Oracle9i 数据库并不是件容易的事，可能的话应该尽量使用 Oracle9i 提供的「数据库建置辅助精灵」来建立新数据库。但是要想成为一个合格的 Oracle DBA，您也必须熟稔手动建立数据库的方式，才能面对建置 Oracle9i 数据库所可能碰到的任何问题。
+
+
+首先我们先看看建立 Oracle9i 数据库之前应注意那些事情。
+
+
+建立 Oracle9i 数据库的前置处理工作
+
+在开始建立新的 Oracle9i 数据库之前，建议您先做好下列准备工作：
+
+n 评估资料表与索引的存放位置，并预估其所需空间(如果可能的话)。
+
+n 规划操作系统下数据库实体档案的部署方式 — 良好的档案配置将大幅改善资料存取效能。不管是安装 Oracle 服务器软件或是建置新数据库时，都必须特别注意这点。例如说，您可以将重置日志文件 (Redo Log files) 置于其它磁盘或是 RAID 1磁盘阵列上；而将数据文件置于 RAID 5磁盘阵列上。
+
+n 选定「全域数据库名称」(global database name) — 它是在网际网络上识别 Oracle9i 数据库的方式，由 数据库名称 与 网域名称 组成，分别设定在起始参数档的 DB_NAME 与 DB_DOMAIN 参数内。
+
+n 熟悉起始参数档内较重要的参数，甚至「服务器参数档」(server parameter file)的使用时机与其功用。
+
+n 选定适当的数据库字符集。所有字符资料都是依照特定字符集存入数据库，因此您必须在建立数据库时指定适当字符集 (注[1])。
+
+n 选定「标准资料区块」大小 — 设定在起始参数档的 DB_BLOCK_SIZE 参数。除了 SYSTEM 资料表空间，其它资料表空间也可以遵循「标准资料区块」的设定。此外，在 Oracle9i 数据库中，您可以设定额外四种「非标准资料区块」。需要注意的是，「标准资料区块」大小在数据库建立完成后即无法更改。
+
+n 针对未来数据库的运作情况，订立一份良好的数据库备份计划，以便数据库毁损时能在最短时间内予以修复。
+
+n 熟悉 Oracle9i 数据库的激活/关闭方式，与其搭配的各种选项(如 STARTUP 指令的 nomount、mount、open 选项)。
+
+n 确认物理内存是否足以激活 Oracle9i Instance。
+
+n 确认 Oracle9i 服务器机的磁盘空间足够，以建置新数据库。
+
+
+除了本文提及的注意事项，您也可以查阅各种操作系统专属的 Oracle9i 安装指南，以获取更详尽的信息。
+
+
+选择数据库建置方式
+
+Oracle9i 数据库建置过程包含下列三项主要工作：
+
+n 建置新的数据库实体档案，包含资料文件、重置日志文件。
+
+n 建立控制档，并予以初始化。
+
+n 建置 Oracle9i 存取数据库系统时必要的数据字典(data dictionary)。
+
+
+实际上，您可能经由下列三种方式之一来建置新的 Oracle9i 数据库时：
+
+n 使用 Oracle「数据库建置组态精灵」(Database Configuration Assistant，DBCA)。
+
+Oracle Universal Installer 在安装过程中会适时激活 DBCA 协助您建立数据库，视您选择的安装种类而定。DBCA 将以图形接口方式引导您逐步完成 Oracle9i 数据库的建置工作。若是安装过程未激活 DBCA，您也可以事后单独激活 DBCA 建立新数据库，甚至建立第二个 Oracle9i 数据库。
+
+n 执行指令文件(script)手动建立 Oracle9i 数据库
+
+如果您手边恰好保存着上次建立 Oracle9i 数据库所用的指令文件，那么您可以直接编修该指令文件，并予以执行。否则，建议您使用 Oracle9i 提供的范例指令文件进行编修。Oracle9i 不仅提供了数据库建置范例指令文件，也提供了起始参数范例文件。您可视实际需要进行必要调整。
+
+n 移转(migrate)或升级(upgrade)既有数据库。
+
+如果您的应用系统正在存取既有 Oracle 数据库，除非您需要一个全新的数据库或是测试用环境，否则应该不需要建立新数据库。在此情况下，您所面临的将是数据库移转或升级议题。有关这方面的详尽信息，请参阅《Oracle9i Database Migration》手册。
+
+
+再谈起始参数档
+
+还记得上一期曾经提过的起始参数档吗？因为手动建立 Oracle9i 数据库之前必须先激活 Oracle9i Instance，因此您必须先建立一个起始参数档。建立新的起始参数档时，最快速的方式就是编辑 Oracle9i 提供的范例档案，然后另存新档。我较习惯的方式是直接编辑既有起始参数档之复本，然后视实际需要进行调整。因为起始参数档可供设定的参数非常多，如果某些参数未经过明确设定，Oracle9i 会自动代入默认值。
+
+第一次以手动方式建立 Oracle 数据库时，建议您尽可能不要修改各起始参数值。等到您熟悉每个参数的意义与使用时机之后，再利用文字编辑器调整或新增其它参数。除此之外，Oracle9i 允许您建立服务器参数文件(以二进制格式存放)。该档案内的参数可在 Oracle9i Instance 激活后执行 ALTER SYSTEM 指令予以修改。
+
+
+以下是建置新数据库之前必须新增或编辑的起始参数，包括：
+
+n 全域数据库名称
+
+n 控制文件名称与路径
+
+n 资料区块大小
+
+n 影响 SGA 容量的起始参数
+
+n 设定处理程序最大数目
+
+n 设定空间回复(Undo)管理方法
+
+
+设定全域数据库名称
+
+Oracle9i 的全域数据库名称由「数据库名称」与「网域名称」所组成，其中「数据库名称」设定于 DB_NAME 起始参数，而「网域名称」则是设定于 DB_DOMAIN 参数。这两个参数合并之后就可以在网际网络上唯一识别每一个 Oracle9i 数据库。举例来说，假设我们欲建立的 Oracle9i 数据库之全域数据库名称为 mydb.uuu.com.tw，那么可在起始参数档内设定下列两参数：
+
+
+DB_NAME = mydb
+
+DB_DOMAIN = uuu.com.tw
+
+
+
+
+
+
+
+ 
+
+Tips：
+
+您可以执行 ALTER DATABASE RENAME GLOBAL_NAME 指令更改 Oracle9i 数据库的全域数据库名称；在您更改 DB_NAME 与 DB_DOMAIN 这两个起始参数后必须将 Oracle9i 数据库重新激活才会生效。此外，控制档也必须重新建立。
+
+
+关于 DB_NAME 起始参数
+
+DB_NAME 必须是文字字符串，且不能超过 8 个字符。在建立数据库的过程中，DB_NAME 设定值会记录在资料文件、控制文件、以及重置日志文件之中。如果您激活 Oracle9i Instance 的时候，起始参数档内设定的 DB_NAME 不同于控制文件内所纪录的，那么数据库将无法激活。
+
+
+关于 DB_DOMAIN 起始参数
+
+DB_DOMAIN 通常是数据库主机所在位置的网域名称。如果您欲建立的数据库将加入分布式数据库运算环境，请特别注意此参数的设定。
+
+
+设定控制档
+
+如前所述，控制文件是 Oracle9i 数据库内相当重要的档案。因此您必须在新的起始参数档内加入 CONTROL_FILE 参数以设定控制文件之文件名与路径。当您执行 CREATE DATABASE 时，列在 CONTROL_FILE 之中的控制档将随之建立。如果起始参数档忽略了此项参数，则 Oracle9i 会在执行 CREATE DATABASE 指令时自动建立控制文件并命名之，然后放在系统预设路径下。
+
+那么，如果 CONTROL_NAME 内设定的控制文件已经存在于操作系统下该怎么办呢？此时 Oracle9i 会自动覆盖既有的控制档。如果您想建立全新的控制档，请确定 CONTROL_NAME 设定的控制文件名不会与操作系统下任何文件名重复。
+
+依照过去经验，Oracle 强烈建议您为每个数据库至少规划两个控制档，并分散在两个实体磁盘上。如此可避免任一控制文件毁损时造成系统停摆。
+
+
+
+设定资料区块大小
+
+Oracle9i 数据库内存放资料的最小单位为「资料区块」(data block)。数据库内「标准资料区块」大小是设定在起始参数档之 DB_BLOCK_SIZE 参数。Oracle9i 数据库内最重要的 SYSTEM 资料表空间就是以 DB_LOCK_SIZE 设定值为基础所建立。此外 DB_BLOCK _SIZE 也是建立新资料表空间时预设的资料区块大小。除了标准资料区块大小之外，Oracle9i 支持额外 4 种「非标准资料区块」大小。
+
+
+关于 DB_BLOCK_SIZE 起始参数
+
+从 Oracle9i 开始，DB_BLOCK_SIZE 所设定的仅是标准资料区块大小；绝大多数的数据库环境只需要设定该参数即可。一般来说，DB_BLOCK_SIZE 可设定为 4K 或 8K。如果此参数未经设定，则 Oracle9i 会自动依照数据库所在操作系统平台自行决定适当的资料区块大小。
+
+需要注意的是，标准资料区块大小在数据库建立之后就无法改变 — 除非重建数据库。如果数据库的「资料区块」大小不同于「操作系统区块」大小，那么建议您将 DB_BLOCK_SIZE 设为「操作系统区块」大小之整数倍。假定操作系统区块大小为 4K，则不妨设定 DB_BLOCK_SIZE = 8192。在某些情况下，这样的组态方式将会显著地提升资料存取效能。
+
+
+何谓「非标准资料区块」？
+
+由「非标准资料区块」构成的资料表空间可经由 CREATE TABLESPACE 指令搭配 BLOCKSIZE 子句建立之；其区块大小设定值可为 2K、4K、8K、16K、32。需注意的是此类型资料区块将受到操作系统环境限制，不是所有操作系统都可以设定上述所有区块大小。
+
+欲使用「非标准资料区块」时，您还必须适当组态 SGA 内数据库缓冲区的子缓冲区，方式是藉由 DB_nK_CACHE_SIZE 参数所设定(此参数容后说明)。
+
+此项机制是 Oracle9i 提出的新功能，在转移数据库时特别好用。举例来说，您的 OLTP 数据库也许将资料区块大小设定为 4K，但是资料仓储系统使用的数据库却将资料区块大小设定为 8K。藉由「非标准资料区块」的机制，您就可以平顺地将 OLTP 数据库的资料转移到资料仓储系统的数据库。
+
+
+影响 SGA 容量的起始参数
+
+此类型起始参数将控制内存内「系统全域区」(System Global Area，SGA) 的大小，除了 SGA_MAX_SIZE 之外，其它参数几乎都可以经由 ALTER SYSTEM 指令动态地更改。借着此项特性，您可以在 Oracle9i Instance 运作时动态地增加或缩小 SGA 容量。
+
+
+设定「数据库缓冲区」大小
+
+一般情况下，Oracle9i 数据库缓冲区(database buffer cache)大小是由起始参数档 DB_CACHE_SIZE 参数所决定。此时数据库缓冲区是以「标准资料区块」作为资料存取单位。如果您想在 Oracle9i 数据库使用多重资料区块大小，则必须设定一组 DB_BLOCK_SIZE 与 DB_nK_CACHE_SIZE 参数。如果上述两项参数在起始参数档未明确设定，则 Oracle9i 会自动设定适当的 DB_CACHE_SIZE 值，且将 DB_nK_CACHE_SIZE 设定为 0。
+
+
+关于 DB_CACHE_SIZE 起始参数
+
+在 Oracle8i 以前，数据库缓冲区大小是由 DB_BLOCK_BUFFERS 与 DB_BLOCK_SIZE 所决定；从 Oracle9i 开始将由 DB_CACHE_SIZE 取代之。需要注意的是，DB_CACHE_SIZE 是以 DB_BLOCK_SIZE 所设定的标准资料区块大小为基准。为了向前兼容，在 Oracle9i 中仍旧可以设定 DB_BLOCK_BUFFERS 参数。但是 DB_BLOCK_BUFFERS 属于静态参数，无法在 Oracle9i 数据库运作时进行动态调整，也不能与其它动态参数互相搭配使用。
+
+
+关于 DB_ nK_CACHE_SIZE 起始参数
+
+从 Oracle9i 开始提供了「非标准资料区块」的支持，可经由下列参数设定：
+
+? DB_2K_CACHE_SIZE
+
+? DB_4K_CACHE_SIZE
+
+? DB_8K_CACHE_SIZE
+
+? DB_16K_CACHE_SIZE
+
+? DB_32K_CACHE_SIZE.
+
+
+各参数之中的 nk 即是设定非标准资料区块的大小。我以下列参数设定为例：
+
+DB_BLOCK_SIZE=4096
+
+DB_CACHE_SIZE=20M
+
+DB_2K_CACHE_SIZE=10M
+
+DB_8K_CACHE_SIZE=8M
+
+
+
+
+
+
+
+
+
+
+ 
+
+使用上述参数所组态的数据库缓冲区将拥有以下特性：
+
+1. 「标准资料区块」大小为 4K。
+
+2. 「标准资料区块」大小构成的数据库缓冲区容量为 20M。
+
+3. 第一种「非标准资料区块」大小为 2K，其构成的缓冲区容量为10M。
+
+4. 第二种「非标准资料区块」大小为 8K，其构成的缓冲区容量为8M。
+
+
+请注意一点，DB_ nK_CACHE_SIZE 参数不能设定「标准资料区块」之缓冲区大小。举例来说，如果 DB_BLOCK_SIZE 设定为 4K，就不能再设定 DB_4K_CACHE_SIZE 参数。
+
+
+
+设定「共享区」与「大型区」容量
+
+SGA 内的共享区(Shared Pool)与大型区(Large Pool)分别由 SHARED_POOL_SIZE 与 LARGE_POOL_SIZE 所设定；这两个参数都属于动态参数 (注[2])。如果起始参数档内未设定这两个参数，则 Oracle9i 将自动决定其适当大小。
+
+
+设定 SGA 的相关注意事项
+
+SGA 最大容量由 SGA_MAX_SIZE 所控制。您可以动态地改变该参数值，但是需注意 SGA_MAX_SIZE 为数据库缓冲区、共享区、大型区、以及其它 SGA 组件之容量总和。各区域之大小不能超过 SGA_MAX_SIZE 所设定。如果 SGA_MAX_SIZE 未设定，则 Oracle9i 会自动设定 SGA_MAX_SIZE 为所有 SGA 组件大小之总和。
+
+
+设定处理程序最大数量
+
+起始参数 PROCESSESS 可决定同时间连接 Oracle9i 的操作系统程序最大数量。该参数值必须大于 6；其中 5 个是 Oracle9i 背景处理程序，加上 1 个使用者处理程序。假定同一时间您的 Oracle9i 数据库同时间会有 100 使用者上线，那么 PROCESSES 至少应设定为 105。
+
+
+设定空间回复管理方式 
+
+任何数据库都应该具备某种特殊机制来确保交易的一致性与完整性。在 Oracle9i 数据库内即存有一份重要的交易相关信息，以便必要时可退回(rollback) 失败的交易，或是回复(undo)某个数据处理动作。Oracle 将这些信息统称为「回复项目」(undo entries)。Oracle9i 的回复项目存放在「回复资料表空间」(undo tablespace) 或是「退回区段」(rollback segments)。
+
+
+UNDO_MANAGEMENT 起始参数
+
+针对回复项目的管理，起始参数档的 UNDO_MANAGEMENT 可设定由下列两种方式之一激活 Oracle9i Instance：
+
+n AUTO：以 ”自动回复管理模式” 激活 Oracle9i Instance；其回复项目将储存于「回复资料表空间」。
+
+n MANUAL：以 ”手动模式” 激活 Oracle9i Instance；其回复项目将储存于「退回区段」。
+
+
+为了向前兼容，UNDO_MANAGEMENT 的默认值为 MANUAL。
+
+
+关于 UNDO_TABLESPACE 起始参数
+
+当 Oracle9i Instance 以 ”自动管理模式” 激活时，将尝试寻找第一个可用的「回复资料表空间」以存放「回复项目」。如果执行 CREATE DATABASE 指令，且 UNDO_MANAGEMENT 设定为 AUTO 时，Oracle9i 就会自动建立一个名为 SYS_UNDOTBS 的「回复资料表空间」。此资料表空间将是 ”自动管理模式” 下预设的「回复资料表空间」。
+
+此外，您还可以设定 UNDO_TABLESPACE 起始参数，以明确指定 Oracle9i 所使用的「回复资料表空间」为何。如果系统内缺乏可用的「回复资料表空间」，则 Oracle9i Instance 虽然可以激活，但是将使用 SYSTEM 退回区段。Oracle 建议您尽量妥善运用「回复资料表空间」来取代「回复区段」，因为前者不但易于管理，也可以设定「回复项目」之维护时间。
+
+
+关于 ROLLBACK_SEGMENTS 起始参数
+
+ROLLBACK_SEGMENTS 起始参数内列出一连串「非系统退回区段」之相关信息。当数据库以 ”手动模式” 进行回复项目管理时，Oracle9i Instance 将会在激活时要求此类型退回区段。如果该参数内无任何设定值，则使用「系统退回区段」。Oracle9i 数据库的 ROLLBACK_SEGMENTS 参数是为了向前兼容而保留，建议您以「回复资料表空间」取代之。
+
+
+手动建立 Oracle9i 数据库
+
+完成所有前置准备工作之后，您就可以依照先前的规划建立 Oracle9i 数据库。有别于使用「数据库建置组态精灵」(Database Configuration Assistant)，手动建立数据库的方式主要是执行 CREATE DATABASE 指令。以下是建立 Oracle9i 数据库 mydb 的完整步骤：
+
+1. 设定 Oracle SID
+
+2. 选择 DBA 验证方式
+
+3. 建立起始参数档
+
+4. 激活 Oracle Instance
+
+5. 执行 CREATE DATABASE 指令
+
+6. 建立其它资料表空间
+
+7. 建立数据字典视观表
+
+
+步骤 1: 设定 Oracle SID
+
+在一般情况下，每个 Oracle9i 数据库都必须对应一个 Oracle9i Instance。所以在建立数据库之前，您必须先指定 Oracle9i Instance 的系统标识符(system identifier)，此系统标识符就是俗称的 Oracle SID；您也可以将它视为 Oracle9i Instance 之名称。
+
+因为 Oracle SID 可用以辨识不同的 Oracle 数据库，因此 SID 名称必须是唯一的，可经由操作系统的环境变量 ORACLE_SID 设定之 (注[3])。以下范例将设定数据库所使用的 Oracle SID 为 mydb：
+
+ORACLE_SID = mydb
+
+export ORACLE_SID
+
+
+
+
+
+
+ 
+
+步骤 2: 选择 DBA 验证方式
+
+您必须经过数据库之验证手续，且被赋予适当系统权限后才可以建立 Oracle9i 数据库。Oracle9i 用来验证 DBA 的方式有两种，分别是「密码文件验证」与「操作系统验证」。建议您第一次手动建立数据库时先使用 oracle 帐号(安装 Oracle9i 所用的帐号) 经由「操作系统验证」来登入 SQL*Plus。有关密码文件的建立与使用方式将在未来专栏中为大家详细介绍。
+
+
+步骤 3: 建立起始参数档
+
+为了简化管理动作，建议您将起始参数档置放于 Oracle9i 预设目录下，并且依照标准格式为起始参数档命名。Oracle9i 起始参数档名之格式为：
+
+init<Oracle SID 名称>.ora
+
+
+
+
+ 
+
+其预设存放路径则为：
+
+$ORACLE_HOME/dbs
+
+
+
+
+ 
+
+以 mydb 数据库为例，起始参数档名称可命名为 initmydb.ora，并存放在 opt/oracle/product/9.0.1/dbs 目录下 (注[4])。如此一来，每当您欲执行 STARTUP 指令激活 Oracle9i Instance 时，系统会自动到预设目录下寻找起始参数档，不需额外指定 PFILE 选项。
+
+
+以下范例起始参数文件之部分内容：
+
+
+Sample Initialization Parameter File
+
+# Cache and I/O
+
+DB_BLOCK_SIZE=4096
+
+DB_CACHE_SIZE=20971520
+
+# Diagnostics and Statistics
+
+BACKGROUND_DUMP_DEST=$ORACLE_HOME/admin/mydb/bdump
+
+CORE_DUMP_DEST=$ORACLE_HOME/admin/mydb/cdump
+
+TIMED_STATISTICS=TRUE
+
+USER_DUMP_DEST=$ORACLE_HOME/admin/mydb/udump
+
+# Control File Configuration
+
+CONTROL_FILES=("$ORACLE_HOME/oradata/mydb/control01.ctl",
+
+"$ORACLE_HOME/oradata/mydb/control02.ctl",
+
+"$ORACLE_HOME/oradata/mydb/control03.ctl")
+
+# Archive
+
+LOG_ARCHIVE_DEST_1='LOCATION=$ORACLE_HOME/oradata/mydb/archive'
+
+LOG_ARCHIVE_FORMAT=%t_%s.dbf
+
+LOG_ARCHIVE_START=TRUE
+
+# Miscellaneous
+
+COMPATIBLE=9.0.0
+
+DB_NAME=ora901
+
+# Distributed, Replication and Snapshot
+
+DB_DOMAIN=uuu.com.tw
+
+REMOTE_LOGIN_PASSWORDFILE=EXCLUSIVE
+
+# Network Registration
+
+INSTANCE_NAME=ora901
+
+# Pools
+
+JAVA_POOL_SIZE=31457280
+
+LARGE_POOL_SIZE=1048576
+
+SHARED_POOL_SIZE=52428800
+
+# Processes and Sessions
+
+PROCESSES=150
+
+# Redo Log and Recovery
+
+FAST_START_MTTR_TARGET=300
+
+# Resource Manager
+
+RESOURCE_MANAGER_PLAN=SYSTEM_PLAN
+
+# Sort, Hash Joins, Bitmap Indexes
+
+SORT_AREA_SIZE=524288
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+步骤 4: 激活 Oracle Instance
+
+在 Oracle9i 数据库中，较常用来激活 Oracle9i Instance 的方式是使用 SQL*Plus 与 Oracle9i Enterprise Manager。以前者为例，您必须先进入 SQL*Plus 环境，然后切换为 sysdba 身份，方式为：
+
+$ SQLPLUS /nolog
+
+CONNECT / AS sysdba
+
+
+
+
+
+
+ 
+
+接下来您必须执行 STARTUP 指令将Oracle9i Instance 开启至 NOMOUNT 状态。一般来说，只有在建立新数据库，或是进行特定数据库维护工作时才会将 Instance 开启至 NOMOUNT 状态。因为将 Instance 开启至 MOUNT 状态时就会尝试挂载 Oracle9i 实体数据库。试想，若系统本身尚未建立数据库实体档案，怎么可能 Instance 开启至 MOUNT 或是 OPEN 状态呢？以下是 STARTUP 指令的执行方式：
+
+STARTUP NOMOUNT
+
+
+
+
+
+
+
+ 
+
+此为 STARTUP 指令最基本的执行方式。因为我们将起始参数文件置于预设目录($ORACLE_HOME/dbs)下，所以不需指定 PFILE 选项。否则，您所执行的 STARTUP 指令应该类似于：
+
+STARTUP NOMOUNT pfile = $ORACLE_HOME/pfile/initmydb.ora
+
+
+
+
+
+
+
+ 
+
+截至目前为止，我们才算是完成执行 CREATE DATABASE 指令前的所有准备工作 — 在内存内已顺利配置 SGA，并激活各种背景处理程序。但此时系统本身尚未存在任何实体数据库。接下来是最重要的步骤 — 执行 CREATE DATABASE 指令。
+
+
+步骤 5: 执行 CREATE DATABASE 指令
+
+当您执行 CREATE DATABASE 指令建立新数据库时，Oracle9i 会完成下列各项主要工作：
+
+n 建立新数据库的实体档案，如资料文件、重置日志文件。
+
+n 更新控制文件内相关信息。
+
+n 建立 SYSTEM 资料表空间与 SYSTEM 退回区段(rollback segment)。
+
+n 建立数据字典
+
+n 设定数据库使用的字符集
+
+n 设定数据库所在时区
+
+
+以下是 CREATE DATABASE 指令之范例：
+
+
+CREATE DATABASE mydb
+
+MAXINSTANCES 1
+
+MAXLOGHISTORY 1
+
+MAXLOGFILES 5
+
+MAXLOGMEMBERS 5
+
+MAXDATAFILES 100
+
+DATAFILE '$ORACLE_HOME/oradata/mydb/system01.dbf' SIZE 200M REUSE
+
+UNDO TABLESPACE undotbs DATAFILE
+
+'$ORACLE_HOME/oradata/mydb/undotbs01.dbf'
+
+SIZE 200M REUSE AUTOEXTEND ON NEXT 2048K MAXSIZE UNLIMITED
+
+DEFAULT TEMPORARY TABLESPACE temptbs1
+
+CHARACTER SET ZHT16BIG5
+
+NATIONAL CHARACTER SET AL16UTF16
+
+LOGFILE GROUP 1 ('$ORACLE_HOME/oradata/mydb/redo01.log') SIZE 100M,
+
+GROUP 2 ('$ORACLE_HOME/oradata/mydb/redo02.log') SIZE 100M,
+
+GROUP 3 ('$ORACLE_HOME/oradata/ora901/redo03.log') SIZE 100M;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+我将以上 CREATE DATABASE 指令较重要的部分整理如下：
+
+n 数据库名称为 mydb，其全域数据库名称(global database name)为 mydb.uuu.com.tw。
+
+n 依照起始参数档 CONTROL_FILES 参数所设定的名称与路径分别建立三个控制档。
+
+n MAXINSTANCES 参数：可用来开启该数据库的 Instance 数目。
+
+n MAXDATAFILES 参数：该数据库所拥有的最大数据文件数量。
+
+n 如 DATAFILE 子句所设定，该数据库 SYSTEM 资料表空间所相对应的操作系统档案为 $ORACLE_HOME/oradata/mydb/system01.dbf。假如该档案已事先存在，则予以覆写。
+
+n UNDO_TABLESPACE 用以建立与命名「回复资料表空间」(undo tablespace)。 
+
+n DEFAULT_TEMPORARY_TABLESPACE 用以建立与命名该数据库预设的「暂时资料表空间」。
+
+n ZHT16BIG5 为数据库内存放资料的字符集。
+
+n AL16UTF16 为「国际字符集」(NATIONAL CHARACTER SET) 设定值，为 NCHAR、NCLOB、与 NVARCHAR2 等 unicode 字段所使用的字符集。AL16UTF16 为 SQL NCHAR 资料型态预设的字符集，其编码方式为 UTF-16。
+
+n 新数据库拥有三个线上重置日志文件(online redo log files)，分别设定在 LOGFILE 子句中。MAXLOGHISTORY、MAXLOGFILES、与 MAXLOGMEMBERS 为重置日志文件的相关设定。
+
+n 因为 CREATE DATABASE 指令内并未包含 ARCHIVELOG 子句，所以该数据库并不会进行重置日志文件的封存动作。您可以在数据库建立后执行 ALTER DATABASE 指令将数据库切换为「封存模式」(ARCHIVELOG mode)。起始参数文件内与「封存模式」相关的参数为 LOG_ARCHIVE_DEST_1、LOG_ARCHIVE_FORMAT、与 LOG_ARCHIVE_START。
+
+n 在 CREATE DATABASE 指令内也可加上 SET TIME_ZONE 子句以设定数据库时区(time zone)。如果省略该子句，则数据库预设时区(time zone)与操作系统时区相同。
+
+
+步骤 6: 建立其它资料表空间
+
+上期专栏内容中我们曾经探讨过 Oracle9i 的资料表空间规划方式。以步骤 5 的 CREATE DATABASE 指令而言，新数据库内将只有一个 SYSTEM 资料表空间。为了更有效地使用及管理 Oracle9i 数据库，建议您另外新增数个资料表空间，依照应用系统实际需求而定。以下指令分别建立 users 与 indx 数据表空间。
+
+
+CREATE TABLESPACE users LOGGING
+
+DATAFILE '$ORACLE_HOME/oradata/mydb/users01.dbf '
+
+SIZE 25M REUSE AUTOEXTEND ON NEXT 1280K MAXSIZE UNLIMITED
+
+EXTENT MANAGEMENT LOCAL;
+
+
+CREATE TABLESPACE indx LOGGING
+
+DATAFILE '$ORACLE_HOME/oradata/mydb/indx01.dbf '
+
+SIZE 25M REUSE AUTOEXTEND ON NEXT 1280K MAXSIZE UNLIMITED
+
+EXTENT MANAGEMENT LOCAL;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+步骤 7: 建立数据字典视观表
+
+除了建立额外的资料表空间外，您还必须在数据库建立之后执行两个重要的指令文件：catelog.sql 与 cataproc.sql。这两个指令文件将在 Oracle9i 数据库内建立管理工作必备的视观表、同义字(synonyms)、以及 PL/SQL 套件(packages)。
+
+n catalog.sql：
+
+本指令文件内容为：在数据字典数据表上建立相关视观表、动态效能视观表、以及存取各种视观表所用的同义字。此外，catalog.sql 也会将这些视观表的使用权限授权给数据库使用者。
+
+n cataproc.sql：
+
+本指令文件内包含执行 PL/SQL 程序所需的所有指令文件。
+
+
+移除 Oracle9i 数据库的方式
+
+移除 Oracle9i 数据库的方式有两种。传统方式是手动删除所有数据库实体档案；较简便的方式是使用「数据库组态辅助精灵」。
+
+如果您想手动移除先前建立的 Oracle9i 数据库，步骤可能会稍微繁琐一点。因为所有数据库相关档案(包含资料文件、重置日志文件、控制文件、起始参数文件、重置日志封存盘...等)都必须自操作系统删除。如果您不清楚这些档案的存放位置，可查询 V$DATAFILE、V$LOGFILE、与 V$CONTROLFILE 等数据字典视观表。如果您欲移除的数据库是设定在「封存模式」，那么建议您先检视起始参数档内 LOG_ARCHIVE_DEST_ n、LOG_ARCHIVE_DEST、与 LOG_ARCHIVE_DUPLEX_DEST 等参数，以便从操作系统删除旧有重置日志封存盘。
+
+
+结语
+
+本期谈到如何以手动方式建置 Oracle9i 数据库，以及 CREATE DATABASE 指令的主要项目。希望各位读者对于 Oracle9i 数据库的建置过程都能有一定程度的了解。未来有机会我将为大家示范如何经由「数据库组态辅助精灵」来建置 Oracle9i 数据库。届时您将发现，原来建置 Oracle9i 数据库竟然如此简单！
+
+
+作者简介
+
+何致億，专长为Oracle、SQL Server 等大型数据库系统管理，资料仓储规划建置，以及数据库应用程序系统开发。拥有 MCSD、MCDBA，Oracle OCP，RHCE，SCJP，Borland JBuilder Product Certified等十余项国际认证。目前正致力于Oracle9i应用系统开发，并负责Oracle9i系列书籍中文化与Oracle Press技术校稿工作。他同时也是美商 Oracle 與 Sun Microsystems公司原厂认证讲师。您可以透过hochihyi@ms64.hinet.net与他联系。
+
+
+注[1]：有关 Oracle 9i 数据库的字符集种类与名称，请参阅《Oracle9i Globalization Support Guide Release 1》
+
+注[2]： SHARED_POOL_SIZE 与 LARGE_POOL_SIZE 在 Oracle9i 以前为静态变量。
+
+注[3]：起始参数档之 DB_NAME 参数值必须与 ORACLE_SID 完全吻合。
+
+注[4]：以我的 Oracle9i 数据库为例：ORACLE_BASE = /opt/oracle，而 ORACLE_HOME = $ORACLE_BASE/product/9.0.1，所以起始参数文件之预设目录应为 opt/oracle/product/9.0.1/dbs。
+
